@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "760345462431",
+    "firebase_url": "https://mobile-track-systems.firebaseio.com",
+    "project_id": "mobile-track-systems",
+    "storage_bucket": "mobile-track-systems.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:760345462431:android:48d1de1023fd96285ec4aa",
+        "android_client_info": {
+          "package_name": "com.mobiletrack_dispatch_flutter.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "760345462431-1odelk8tvtp77frdljo1q04i2kqp8qgp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpDcZ8uuywjVN_SEzPzqhZLUWvkRhKMsY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "760345462431-1odelk8tvtp77frdljo1q04i2kqp8qgp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
