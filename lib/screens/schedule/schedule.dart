@@ -14,6 +14,7 @@ import 'package:mobiletrack_dispatch_flutter/providers/schedule_provider.dart';
 import 'package:mobiletrack_dispatch_flutter/providers/settings_provider.dart';
 import 'package:mobiletrack_dispatch_flutter/screens/schedule/new_service_request.dart';
 import 'package:mobiletrack_dispatch_flutter/screens/schedule/render_widget.dart';
+import 'package:mobiletrack_dispatch_flutter/screens/schedule/render_widget2.dart';
 import 'package:provider/provider.dart';
 
 class MultiplicationTableCell extends StatelessWidget {
@@ -124,6 +125,7 @@ class _TableBodyState extends State<TableBody> {
 
   bool activeSelection = false;
   bool activeDrag = false;
+  WorkOrder? activeWorkOrder;
 
   @override
   void initState() {
@@ -157,6 +159,8 @@ class _TableBodyState extends State<TableBody> {
   _detectTapedItem(PointerEvent event) {
     final RenderBox box = key.currentContext!.findRenderObject() as RenderBox;
     final result = BoxHitTestResult();
+
+    print("box w - ${box.size.width}, h-${box.size.height}");
     Offset local = box.globalToLocal(event.position);
 
     if (box.hitTest(result, position: local)) {
@@ -165,15 +169,72 @@ class _TableBodyState extends State<TableBody> {
         final target = hit.target;
         if (target is RenderProxyWidget &&
             !_trackTaped.contains(target) &&
-            activeSelection &&
-            !activeDrag) {
+            activeSelection) {
           _trackTaped.add(target);
-          _selectTime(target);
-        } else {
-          //_trackTaped.remove(target);
+
+          if (!activeDrag) {
+            _selectTime(target);
+          }
         }
+
+        // if (target is RenderProxyWidget2) {
+        //   onChangeWorkOrder(target, event, local, box);
+        // }
       }
     } else {}
+  }
+
+  onChangeWorkOrder(RenderProxyWidget2 workWidget, PointerEvent event,
+      Offset local, RenderBox box) {
+    activeWorkOrder = workWidget.workOrder;
+    activeDrag = true;
+
+    double x = event.position.dx;
+    double y = event.position.dy;
+
+    double wp = local.dx / box.size.width;
+    double hp = local.dy / box.size.height;
+
+    int tp = (widget.timeline.length * wp).toInt();
+
+    print("wp - $wp, hp - $hp, tp - $tp");
+
+    print(
+        "onChangeWorkOrder local - dx-${local.dx}, dy-${local.dy}, distance-${local.distance} track is Empty - ${_trackTaped.isEmpty} techId - ${workWidget.workOrder!.technicianId}, dx-$x, dy-$y, distance - ${event.position.distance}");
+
+    print(
+        "total offset - ${widget.scrollController.offset}, maxScrollExtent - ${widget.scrollController.position.maxScrollExtent}, minScrollExtent - ${widget.scrollController.position.minScrollExtent}");
+
+    if (_trackTaped.isNotEmpty) {
+      //activeWorkOrder!.startDate = Timestamp.fromDate(_trackTaped.last.time!);
+
+      if (_trackTaped.last.technicianId != activeWorkOrder!.technicianId) {
+        TimelineRow timelineRow = widget.timelineRows.singleWhere((element) =>
+            element.technician.id == activeWorkOrder!.technicianId);
+        timelineRow.workOrders
+            .removeWhere((element) => element.id == activeWorkOrder!.id);
+
+        TimelineRow timelineRow2 = widget.timelineRows.singleWhere((element) =>
+            element.technician.id == _trackTaped.last.technicianId);
+        timelineRow2.workOrders.add(activeWorkOrder!);
+      }
+    }
+
+    double startPosition = 0;
+
+    DateTime timeStart = widget.timeline.first;
+    DateTime timeEnd = widget.timeline.last;
+
+    timeEnd = timeEnd.add(Duration(hours: 1));
+
+    double totalMinutes = widget.timeline.length * 60;
+
+    Duration differenceStart =
+        activeWorkOrder!.startDate.toDate().difference(timeStart);
+
+    int minutesStart = differenceStart.inMinutes;
+
+    setState(() {});
   }
 
   _selectTime(RenderProxyWidget time) {
@@ -240,6 +301,9 @@ class _TableBodyState extends State<TableBody> {
     // else{
     _trackTaped.clear();
     setState(() {
+      activeWorkOrder = null;
+      activeDrag = false;
+
       if (selectedTimes.length > 1) {
         List list = selectedTimes.toList();
         list.sort((a, b) => a.time!.compareTo(b.time!));
@@ -263,7 +327,7 @@ class _TableBodyState extends State<TableBody> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return /*GestureDetector(
         onLongPress: () {
           setState(() {
             activeSelection = true;
@@ -274,292 +338,315 @@ class _TableBodyState extends State<TableBody> {
             activeSelection = false;
           });
         },
-        child: Listener(
-            onPointerDown: _detectTapedItem,
-            onPointerMove: _detectTapedItem,
-            onPointerUp: _clearSelection,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 100,
-                  child: ListView(
-                    controller: _firstColumnController,
-                    physics: ClampingScrollPhysics(),
-                    children:
-                        List.generate(widget.timelineRows.length, (index) {
-                      Technician technician =
-                          widget.timelineRows[index].technician;
-
-                      return MultiplicationTableCell(
-                        color: getColorFromHex(technician.color),
-                        cellWidth: 100,
-                        child: Text(
-                          "${technician.firstName} ${technician.lastName}",
-                          maxLines: 2,
-                          textAlign: TextAlign.center,
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: widget.scrollController,
-                    scrollDirection: Axis.horizontal,
-                    //clipBehavior: Clip.antiAliasWithSaveLayer,
-                    //physics: const ClampingScrollPhysics(),
-
-                    physics: (selectedTimes.isNotEmpty && activeSelection) ||
-                            activeDrag
-                        ? const NeverScrollableScrollPhysics()
-                        : const ClampingScrollPhysics(),
-
-                    child: SizedBox(
-                      width: (widget.timeline.length) * cellWidth,
+        onPanUpdate: (d) {
+          print('on pan update doesn\'t work');
+        },
+        child:*/
+        GestureDetector(
+            onLongPressUp: () {
+              setState(() {
+                activeSelection = false;
+              });
+            },
+            onLongPress: () {
+              setState(() {
+                activeSelection = true;
+              });
+            },
+            child: Listener(
+                onPointerDown: _detectTapedItem,
+                onPointerMove: _detectTapedItem,
+                onPointerUp: _clearSelection,
+                behavior: HitTestBehavior.deferToChild,
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 100,
                       child: ListView(
-                          key: key,
-                          //shrinkWrap: true,
-                          //primary: selectedTimes.isEmpty ? true : false,
-                          controller: _restColumnsController,
-                          //physics: const ClampingScrollPhysics(),
-                          physics:
-                              (selectedTimes.isNotEmpty && activeSelection) ||
+                        controller: _firstColumnController,
+                        physics: ClampingScrollPhysics(),
+                        children:
+                            List.generate(widget.timelineRows.length, (index) {
+                          Technician technician =
+                              widget.timelineRows[index].technician;
+
+                          return MultiplicationTableCell(
+                            color: getColorFromHex(technician.color),
+                            cellWidth: 100,
+                            child: Text(
+                              "${technician.firstName} ${technician.lastName}",
+                              maxLines: 2,
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: widget.scrollController,
+                        scrollDirection: Axis.horizontal,
+                        //clipBehavior: Clip.antiAliasWithSaveLayer,
+                        //physics: const ClampingScrollPhysics(),
+
+                        physics:
+                            (selectedTimes.isNotEmpty && activeSelection) ||
+                                    activeDrag
+                                ? const NeverScrollableScrollPhysics()
+                                : const ClampingScrollPhysics(),
+
+                        child: SizedBox(
+                          width: (widget.timeline.length) * cellWidth,
+                          child: ListView(
+                              key: key,
+                              //shrinkWrap: true,
+                              //primary: selectedTimes.isEmpty ? true : false,
+                              controller: _restColumnsController,
+                              //physics: const ClampingScrollPhysics(),
+                              physics: (selectedTimes.isNotEmpty &&
+                                          activeSelection) ||
                                       activeDrag
                                   ? const NeverScrollableScrollPhysics()
                                   : const ClampingScrollPhysics(),
-                          children:
-                              List.generate(widget.timelineRows.length, (y) {
-                            return SizedBox(
-                                width: (widget.timeline.length) * cellWidth,
-                                height: 50,
-                                child: Stack(children: [
-                                  Positioned(
-                                    bottom: 0,
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    child: Container(
-                                      //width: 1,
-                                      alignment: Alignment.bottomCenter,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: Colors.black12,
-                                          width: 1.0,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  ...List.generate(widget.timeline.length, (x) {
-                                    return Positioned(
-                                      bottom: 0,
-                                      top: 0,
-                                      left: 0,
-                                      right: cellWidth * x,
-                                      child: Container(
-                                        margin:
-                                            EdgeInsets.symmetric(vertical: 1),
-                                        alignment: Alignment.centerRight,
-                                        child: VerticalDivider(
-                                          color: Colors.black12,
-                                          width: 1,
-                                          thickness: 2,
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                  ...List.generate(
-                                      widget.timelineRows[y].workOrders.length,
-                                      (x) {
-                                    WorkOrder workOrder =
-                                        widget.timelineRows[y].workOrders[x];
-
-                                    double startPosition = 0;
-                                    double endPosition = 1;
-
-                                    DateTime timeStart = widget.timeline.first;
-                                    DateTime timeEnd = widget.timeline.last;
-                                    timeEnd = timeEnd.add(Duration(hours: 1));
-
-                                    print("### WORk ORDER START");
-                                    print(
-                                        "TID - ${workOrder.technicianId}, ${workOrder.description}");
-
-                                    print(
-                                        "work start - ${dateFormatter.format(workOrder.startDate.toDate())} , end - ${dateFormatter.format(workOrder.endDate.toDate())}");
-
-                                    print(
-                                        "start timeline - ${dateFormatter.format(timeStart)}, end timeline - ${dateFormatter.format(timeEnd)},");
-
-                                    double totalMinutes =
-                                        widget.timeline.length * 60;
-
-                                    Duration differenceStart = workOrder
-                                        .startDate
-                                        .toDate()
-                                        .difference(timeStart);
-
-                                    int minutesStart =
-                                        differenceStart.inMinutes;
-
-                                    ///workOrder.startTime.minute;
-
-                                    if (minutesStart < 0) {
-                                      startPosition = 0;
-                                    } else {
-                                      startPosition =
-                                          minutesStart / totalMinutes;
-                                    }
-
-                                    print(
-                                        "timeStart diff - ${minutesStart}, position - ${startPosition}");
-
-                                    Duration differenceEnd = workOrder.endDate
-                                        .toDate()
-                                        .difference(timeEnd);
-
-                                    int minutesEnd = differenceEnd.inMinutes;
-
-                                    ///workOrder.startTime.minute;
-
-                                    if (minutesEnd > totalMinutes) {
-                                      endPosition = 1;
-                                    } else {
-                                      endPosition = minutesEnd / totalMinutes;
-                                      if (endPosition < 0) {
-                                        endPosition = endPosition * -1;
-                                      }
-                                    }
-
-                                    print(
-                                        "timeEnd diff - ${minutesEnd}, position - ${endPosition}");
-
-                                    print("### WORk ORDER END");
-
-                                    Widget child = Container(
-                                      color: Color(0xFFC3F2EF),
-                                      margin: EdgeInsets.symmetric(vertical: 1),
-                                      child: Row(children: [
-                                        VerticalDivider(
-                                          width: 5,
-                                          thickness: 5,
-                                          color: Colors.black87,
-                                        ),
-                                        SizedBox(
-                                          width: 5,
-                                        ),
-                                        Expanded(
-                                            child: Container(
-                                                padding: EdgeInsets.symmetric(
-                                                    vertical: 5, horizontal: 5),
-                                                //height: 50,
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Container(
-                                                        child: Text(
-                                                      workOrder.displayName,
-                                                      style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.bold),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      maxLines: 1,
-                                                    )),
-                                                    SizedBox(
-                                                      height: 2,
-                                                    ),
-                                                    Container(
-                                                        child: Text(
-                                                      workOrder.description,
-                                                      //"total - $totalMinutes, minutesStart-$minutesStart, minutesEnd-$minutesEnd, start position-$startPosition, end position-$endPosition, start - ${workOrder.startTime.hour}:${workOrder.startTime.minute}, end - ${workOrder.endTime.hour}:${workOrder.endTime.minute}",
-                                                      style: TextStyle(
-                                                          fontSize: 12),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      maxLines: 1,
-                                                    )),
-                                                  ],
-                                                )))
-                                      ]),
-                                    );
-
-                                    double totalWidth =
-                                        (widget.timeline.length) * cellWidth;
-
-                                    double fromLeft =
-                                        totalWidth * startPosition;
-                                    double fromRight = totalWidth * endPosition;
-
-                                    return Positioned(
-                                        top: 0,
-                                        left: fromLeft,
-                                        right: fromRight,
+                              children: List.generate(
+                                  widget.timelineRows.length, (y) {
+                                return SizedBox(
+                                    width: (widget.timeline.length) * cellWidth,
+                                    height: 50,
+                                    child: Stack(children: [
+                                      Positioned(
                                         bottom: 0,
-                                        child: Draggable<WorkOrder>(
-                                            data: workOrder,
-                                            onDragUpdate: (details) {
-                                              print("onDragUpdate");
-                                              setState(() {
-                                                activeDrag = true;
-                                                activeSelection = false;
-                                              });
-                                            },
-                                            onDragStarted: () {
-                                              print("onDragStarted");
-                                              setState(() {
-                                                activeDrag = true;
-                                                activeSelection = false;
-                                              });
-                                            },
-                                            childWhenDragging: Container(),
-                                            feedback: Opacity(
-                                              opacity: 0.8,
-                                              child: child,
-                                            ),
-                                            child: child));
-                                  }),
-                                  Row(
-                                      children: List.generate(
-                                          widget.timeline.length, (x) {
-                                    bool checked = selectedTimes
-                                                .map((e) => e)
-                                                .toList()
-                                                .indexWhere((element) => (element
-                                                            .time!
-                                                            .difference(widget
-                                                                .timeline[x])
-                                                            .inMinutes ==
-                                                        0 &&
-                                                    element.technicianId ==
-                                                        widget.timelineRows[y]
-                                                            .technician.id)) !=
-                                            -1
-                                        ? true
-                                        : false;
-
-                                    return Expanded(
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
                                         child: Container(
-                                            child: RenderWidget(
-                                      index: x,
-                                      technicianId:
-                                          widget.timelineRows[y].technician.id,
-                                      time: widget.timeline[x],
-                                      child: Container(
-                                        color: checked
-                                            ? Colors.green
-                                            : Colors.transparent,
+                                          //width: 1,
+                                          alignment: Alignment.bottomCenter,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                              color: Colors.black12,
+                                              width: 1.0,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    )));
-                                  })),
-                                ]));
-                          })),
+                                      ...List.generate(widget.timeline.length,
+                                          (x) {
+                                        return Positioned(
+                                          bottom: 0,
+                                          top: 0,
+                                          left: 0,
+                                          right: cellWidth * x,
+                                          child: Container(
+                                            margin: EdgeInsets.symmetric(
+                                                vertical: 1),
+                                            alignment: Alignment.centerRight,
+                                            child: VerticalDivider(
+                                              color: Colors.black12,
+                                              width: 1,
+                                              thickness: 2,
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                      Row(
+                                          children: List.generate(
+                                              widget.timeline.length, (x) {
+                                        bool checked = selectedTimes
+                                                    .map((e) => e)
+                                                    .toList()
+                                                    .indexWhere((element) => (element
+                                                                .time!
+                                                                .difference(
+                                                                    widget.timeline[
+                                                                        x])
+                                                                .inMinutes ==
+                                                            0 &&
+                                                        element.technicianId ==
+                                                            widget
+                                                                .timelineRows[y]
+                                                                .technician
+                                                                .id)) !=
+                                                -1
+                                            ? true
+                                            : false;
+
+                                        return Expanded(
+                                            child: Container(
+                                                child: RenderWidget(
+                                          index: x,
+                                          technicianId: widget
+                                              .timelineRows[y].technician.id,
+                                          time: widget.timeline[x],
+                                          child: Container(
+                                            color: checked
+                                                ? Colors.green
+                                                : Colors.transparent,
+                                          ),
+                                        )));
+                                      })),
+                                      ...List.generate(
+                                          widget.timelineRows[y].workOrders
+                                              .length, (x) {
+                                        WorkOrder workOrder = widget
+                                            .timelineRows[y].workOrders[x];
+
+                                        double startPosition = 0;
+                                        double endPosition = 1;
+
+                                        DateTime timeStart =
+                                            widget.timeline.first;
+                                        DateTime timeEnd = widget.timeline.last;
+                                        timeEnd =
+                                            timeEnd.add(Duration(hours: 1));
+
+                                        print("### WORk ORDER START");
+                                        print(
+                                            "TID - ${workOrder.technicianId}, ${workOrder.description}");
+
+                                        print(
+                                            "work start - ${dateFormatter.format(workOrder.startDate.toDate())} , end - ${dateFormatter.format(workOrder.endDate.toDate())}");
+
+                                        print(
+                                            "start timeline - ${dateFormatter.format(timeStart)}, end timeline - ${dateFormatter.format(timeEnd)},");
+
+                                        double totalMinutes =
+                                            widget.timeline.length * 60;
+
+                                        Duration differenceStart = workOrder
+                                            .startDate
+                                            .toDate()
+                                            .difference(timeStart);
+
+                                        int minutesStart =
+                                            differenceStart.inMinutes;
+
+                                        ///workOrder.startTime.minute;
+
+                                        if (minutesStart < 0) {
+                                          startPosition = 0;
+                                        } else {
+                                          startPosition =
+                                              minutesStart / totalMinutes;
+                                        }
+
+                                        print(
+                                            "timeStart diff - ${minutesStart}, position - ${startPosition}");
+
+                                        Duration differenceEnd = workOrder
+                                            .endDate
+                                            .toDate()
+                                            .difference(timeEnd);
+
+                                        int minutesEnd =
+                                            differenceEnd.inMinutes;
+
+                                        ///workOrder.startTime.minute;
+
+                                        if (minutesEnd > totalMinutes) {
+                                          endPosition = 1;
+                                        } else {
+                                          endPosition =
+                                              minutesEnd / totalMinutes;
+                                          if (endPosition < 0) {
+                                            endPosition = endPosition * -1;
+                                          }
+                                        }
+
+                                        print(
+                                            "timeEnd diff - ${minutesEnd}, position - ${endPosition}");
+
+                                        print("### WORk ORDER END");
+
+                                        bool isSelected = false;
+                                        if (activeWorkOrder != null &&
+                                            activeWorkOrder!.id ==
+                                                workOrder.id) {
+                                          isSelected = true;
+                                        }
+
+                                        Widget child = Container(
+                                          color: isSelected
+                                              ? Colors.redAccent
+                                              : Color(0xFFC3F2EF),
+                                          margin:
+                                              EdgeInsets.symmetric(vertical: 1),
+                                          child: Row(children: [
+                                            VerticalDivider(
+                                              width: 5,
+                                              thickness: 5,
+                                              color: Colors.black87,
+                                            ),
+                                            SizedBox(
+                                              width: 5,
+                                            ),
+                                            Expanded(
+                                                child: Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                            vertical: 5,
+                                                            horizontal: 5),
+                                                    //height: 50,
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Container(
+                                                            child: Text(
+                                                          workOrder.displayName,
+                                                          style: TextStyle(
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          maxLines: 1,
+                                                        )),
+                                                        SizedBox(
+                                                          height: 2,
+                                                        ),
+                                                        Container(
+                                                            child: Text(
+                                                          workOrder.description,
+                                                          //"total - $totalMinutes, minutesStart-$minutesStart, minutesEnd-$minutesEnd, start position-$startPosition, end position-$endPosition, start - ${workOrder.startTime.hour}:${workOrder.startTime.minute}, end - ${workOrder.endTime.hour}:${workOrder.endTime.minute}",
+                                                          style: TextStyle(
+                                                              fontSize: 12),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          maxLines: 1,
+                                                        )),
+                                                      ],
+                                                    )))
+                                          ]),
+                                        );
+
+                                        double totalWidth =
+                                            (widget.timeline.length) *
+                                                cellWidth;
+
+                                        double fromLeft =
+                                            totalWidth * startPosition;
+                                        double fromRight =
+                                            totalWidth * endPosition;
+
+                                        return Positioned(
+                                            top: 0,
+                                            left: fromLeft,
+                                            right: fromRight,
+                                            bottom: 0,
+                                            child: RenderWidget2(
+                                                child: child,
+                                                workOrder: workOrder));
+                                      }),
+                                    ]));
+                              })),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
-            )));
+                  ],
+                )));
   }
 }
 
