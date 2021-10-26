@@ -113,20 +113,17 @@ class ScheduleProvider extends ChangeNotifier {
       }
     });
 
-
     //Sutton@hukills.com data
     TimelineRow? testData = this
         ._timelineRows
         .singleWhereOrNull((e) => e.technician.id == "Sutton@hukills.com");
 
-    if(testData != null){
+    if (testData != null) {
       testData.workOrders.forEach((wo) {
         print(
             "Test Data - ${wo.technicianId}, ${wo.description}, ${dateFormatter.format(wo.startDate.toDate())}, ${dateFormatter.format(wo.endDate.toDate())}");
-
       });
     }
-
 
     this.serviceOrders.forEach((workOrder) {
       // pass the work orders to the correct technician

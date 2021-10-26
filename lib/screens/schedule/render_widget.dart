@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:mobiletrack_dispatch_flutter/models/work_order_model.dart';
 
 class RenderWidget extends SingleChildRenderObjectWidget {
   final String technicianId;
-  final DateTime time;
+  final DateTime? time;
   final int index;
+
+  final bool isWorkOrder;
+  final WorkOrder? workOrder;
 
   RenderWidget(
       {required Widget child,
-      required this.technicianId,
-      required this.time,
-      required this.index})
+      this.technicianId = "",
+      this.time,
+      required this.isWorkOrder,
+      this.workOrder,
+      this.index = 0})
       : super(child: child);
 
   @override
@@ -25,6 +31,9 @@ class RenderWidget extends SingleChildRenderObjectWidget {
     renderObject..technicianId = technicianId;
     renderObject..time = time;
     renderObject..index = index;
+
+    renderObject..isWorkOrder = isWorkOrder;
+    renderObject..workOrder = workOrder;
   }
 }
 
@@ -32,6 +41,13 @@ class RenderProxyWidget extends RenderProxyBox {
   int index;
   String technicianId;
   DateTime? time;
+  bool isWorkOrder;
+  WorkOrder? workOrder;
 
-  RenderProxyWidget({this.technicianId = "", this.time, this.index = 0});
+  RenderProxyWidget(
+      {this.technicianId = "",
+      this.time,
+      this.index = 0,
+      this.isWorkOrder = false,
+      this.workOrder});
 }

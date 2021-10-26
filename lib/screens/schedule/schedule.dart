@@ -14,7 +14,6 @@ import 'package:mobiletrack_dispatch_flutter/providers/schedule_provider.dart';
 import 'package:mobiletrack_dispatch_flutter/providers/settings_provider.dart';
 import 'package:mobiletrack_dispatch_flutter/screens/schedule/new_service_request.dart';
 import 'package:mobiletrack_dispatch_flutter/screens/schedule/render_widget.dart';
-import 'package:mobiletrack_dispatch_flutter/screens/schedule/render_widget2.dart';
 import 'package:provider/provider.dart';
 
 class MultiplicationTableCell extends StatelessWidget {
@@ -117,6 +116,7 @@ class _TableBodyState extends State<TableBody> {
   late double cellWidth = 50.0;
 
   final key = GlobalKey();
+
   //final Set<RenderProxyWidget> selectedTimes = Set<RenderProxyWidget>();
   final List<RenderProxyWidget> selectedTimes = [];
   final Set<RenderProxyWidget> _trackTaped = Set<RenderProxyWidget>();
@@ -126,6 +126,9 @@ class _TableBodyState extends State<TableBody> {
   bool activeSelection = false;
   bool activeDrag = false;
   WorkOrder? activeWorkOrder;
+  int timeDiffInMinutes = 0;
+
+  late ScheduleProvider scheduleProvider;
 
   @override
   void initState() {
@@ -133,6 +136,8 @@ class _TableBodyState extends State<TableBody> {
     _controllers = LinkedScrollControllerGroup();
     _firstColumnController = _controllers.addAndGet();
     _restColumnsController = _controllers.addAndGet();
+    this.scheduleProvider =
+        Provider.of<ScheduleProvider>(context, listen: false);
   }
 
   @override
@@ -172,9 +177,9 @@ class _TableBodyState extends State<TableBody> {
             activeSelection) {
           _trackTaped.add(target);
 
-          if (!activeDrag) {
-            _selectTime(target);
-          }
+          //if (!activeDrag) {
+          _selectTime(target);
+          //}
         }
 
         // if (target is RenderProxyWidget2) {
@@ -184,7 +189,7 @@ class _TableBodyState extends State<TableBody> {
     } else {}
   }
 
-  onChangeWorkOrder(RenderProxyWidget2 workWidget, PointerEvent event,
+/*  onChangeWorkOrder(RenderProxyWidget2 workWidget, PointerEvent event,
       Offset local, RenderBox box) {
     activeWorkOrder = workWidget.workOrder;
     activeDrag = true;
@@ -235,18 +240,31 @@ class _TableBodyState extends State<TableBody> {
     int minutesStart = differenceStart.inMinutes;
 
     setState(() {});
-  }
+  }*/
 
   _selectTime(RenderProxyWidget time) {
+    if (time.isWorkOrder && selectedTimes.isEmpty) {
+      activeWorkOrder = time.workOrder;
+
+      setState(() {
+        timeDiffInMinutes = activeWorkOrder!.endDate
+            .toDate()
+            .difference(activeWorkOrder!.startDate.toDate())
+            .inMinutes;
+        //lastTechId = activeWorkOrder!.technicianId;
+        activeDrag = true;
+      });
+    }
+
     bool exist = selectedTimes.contains(time);
-    //
     if (exist) {
       print("exist cell");
-      selectedTimes.remove(time);
-      // int index = selectedTimes.indexOf(time);
-      // if (index == (selectedTimes.length - 1)) {
-      //   selectedTimes.remove(time);
-      // }
+
+      //selectedTimes.remove(time);
+      int index = selectedTimes.indexOf(time);
+      if (index == (selectedTimes.length - 1)) {
+        selectedTimes.remove(time);
+      }
     } else {
       if (selectedTimes.isNotEmpty) {
         if (selectedTimes.first.technicianId == time.technicianId) {
@@ -264,11 +282,30 @@ class _TableBodyState extends State<TableBody> {
     print(
         "total offset - ${widget.scrollController.offset}, position - ${widget.scrollController.position.maxScrollExtent}");
 
-    if (selectedTimes.length > 1) {
-      DateTime first = selectedTimes.first.time!;
-      DateTime last = selectedTimes.last.time!;
+    // bool isTimeFound = selectedTimes
+    //     .where((element) => element.isWorkOrder == false)
+    //     .isNotEmpty;
 
-      final diff = first.difference(last);
+    if (selectedTimes
+        .where((element) => element.isWorkOrder == false)
+        .isNotEmpty) {
+      /* DateTime first = selectedTimes
+          .firstWhere((element) => element.isWorkOrder == false)
+          .time!;
+      DateTime last = selectedTimes
+          .lastWhere((element) => element.isWorkOrder == false)
+          .time!;*/
+
+      RenderProxyWidget firstItem =
+          selectedTimes.firstWhere((element) => element.isWorkOrder == false);
+
+      RenderProxyWidget lastItem =
+          selectedTimes.lastWhere((element) => element.isWorkOrder == false);
+
+      DateTime firstDate = firstItem.time!; //selectedTimes.first.time!;
+      DateTime lastDate = lastItem.time!; //selectedTimes.last.time!;
+
+      final diff = firstDate.difference(lastDate);
 
       double offset = (widget.scrollController.position.maxScrollExtent /
           widget.timeline.length);
@@ -286,6 +323,34 @@ class _TableBodyState extends State<TableBody> {
             duration: Duration(milliseconds: 200),
             curve: Curves.easeIn);
       }
+
+      if (activeDrag && !time.isWorkOrder) {
+        //if (selectedTimes.last.technicianId != activeWorkOrder!.technicianId) {
+
+        /*TimelineRow timelineRow = scheduleProvider.timelineRows
+            .singleWhere((element) => element.technician.id == activeWorkOrder!.technicianId);
+
+        timelineRow.workOrders
+            .removeWhere((element) => element.id == activeWorkOrder!.id);*/
+
+        scheduleProvider.timelineRows.forEach((e) => e.workOrders
+            .removeWhere((element) => element.id == activeWorkOrder!.id));
+        setState(() {});
+
+        DateTime t1 = lastDate;
+        DateTime t2 = lastDate.add(Duration(minutes: timeDiffInMinutes));
+
+        print(
+            "new Start Date - ${dateFormatter.format(t1)}, End Date - ${dateFormatter.format(t2)}");
+
+        TimelineRow timelineRow2 = scheduleProvider.timelineRows.singleWhere(
+            (element) =>
+                element.technician.id == selectedTimes.last.technicianId);
+
+        activeWorkOrder!.startDate = Timestamp.fromDate(t1);
+        activeWorkOrder!.endDate = Timestamp.fromDate(t2);
+        timelineRow2.workOrders.add(activeWorkOrder!);
+      }
     }
 
     //correct list
@@ -302,9 +367,8 @@ class _TableBodyState extends State<TableBody> {
     _trackTaped.clear();
     setState(() {
       activeWorkOrder = null;
-      activeDrag = false;
 
-      if (selectedTimes.length > 1) {
+      if (selectedTimes.length > 1 && !activeDrag) {
         List list = selectedTimes.toList();
         list.sort((a, b) => a.time!.compareTo(b.time!));
 
@@ -322,6 +386,8 @@ class _TableBodyState extends State<TableBody> {
                 date: widget.timeline.first, startTime: start, endTime: end)));
       }
       selectedTimes.clear();
+
+      activeDrag = false;
     });
   }
 
@@ -474,12 +540,13 @@ class _TableBodyState extends State<TableBody> {
                                         return Expanded(
                                             child: Container(
                                                 child: RenderWidget(
+                                          isWorkOrder: false,
                                           index: x,
                                           technicianId: widget
                                               .timelineRows[y].technician.id,
                                           time: widget.timeline[x],
                                           child: Container(
-                                            color: checked
+                                            color: checked && !activeDrag
                                                 ? Colors.green
                                                 : Colors.transparent,
                                           ),
@@ -567,7 +634,7 @@ class _TableBodyState extends State<TableBody> {
 
                                         Widget child = Container(
                                           color: isSelected
-                                              ? Colors.redAccent
+                                              ? Colors.lightBlueAccent
                                               : Color(0xFFC3F2EF),
                                           margin:
                                               EdgeInsets.symmetric(vertical: 1),
@@ -636,7 +703,13 @@ class _TableBodyState extends State<TableBody> {
                                             left: fromLeft,
                                             right: fromRight,
                                             bottom: 0,
-                                            child: RenderWidget2(
+                                            child: RenderWidget(
+                                                index: 0,
+                                                technicianId:
+                                                    workOrder.technicianId,
+                                                time: workOrder.startDate
+                                                    .toDate(),
+                                                isWorkOrder: true,
                                                 child: child,
                                                 workOrder: workOrder));
                                       }),
