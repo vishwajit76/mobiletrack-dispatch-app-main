@@ -63,7 +63,6 @@ class Roles {
 
 class Schedule {
   List<Day> days;
-
   Schedule({required this.days});
 
   factory Schedule.fromMap(Map schedule) {
