@@ -1,23 +1,13 @@
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
-import 'package:linked_scroll_controller/linked_scroll_controller.dart';
 import 'package:mobiletrack_dispatch_flutter/components/left_drawer.dart';
-import 'package:mobiletrack_dispatch_flutter/components/status_key.dart';
 import 'package:mobiletrack_dispatch_flutter/constants/constants.dart';
-import 'package:mobiletrack_dispatch_flutter/models/technician_model.dart';
-import 'package:mobiletrack_dispatch_flutter/models/work_order_model.dart';
 import 'package:mobiletrack_dispatch_flutter/providers/schedule_provider.dart';
 import 'package:mobiletrack_dispatch_flutter/providers/settings_provider.dart';
 import 'package:mobiletrack_dispatch_flutter/screens/schedule/multiplication_table.dart';
-import 'package:mobiletrack_dispatch_flutter/screens/schedule/new_service_request.dart';
-import 'package:mobiletrack_dispatch_flutter/screens/schedule/render_widget.dart';
 import 'package:provider/provider.dart';
-
-
 
 class SchedulePage extends StatefulWidget {
   @override
@@ -33,6 +23,8 @@ class _ScheduleState extends State<SchedulePage> {
 
   DateFormat dateFormatter = DateFormat('MMDDyy');
   DateFormat textFormatter = DateFormat('yMMMMd');
+
+  DateFormat dateFormatter2 = DateFormat('dd/mm/yyyy HH:MM');
 
   bool fullTimeline = false;
 
@@ -69,38 +61,74 @@ class _ScheduleState extends State<SchedulePage> {
 
   @override
   void initState() {
-    super.initState();
     this.scheduleProvider =
         Provider.of<ScheduleProvider>(context, listen: false);
+
     this.settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
+
     scheduleProvider.getTechnicians('hukills');
+
+    super.initState();
+
+    Future.microtask(() => loadWorkOrders());
+    // DateTime start = timeline.first;
+    // DateTime end = timeline.last.add(Duration(hours: 1));
+    // scheduleProvider.filterWorkOrder(start, end);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    ScheduleProvider scheduleProvider = Provider.of<ScheduleProvider>(context);
+
+    ScheduleProvider scheduleProvider =
+        Provider.of<ScheduleProvider>(context, listen: false);
+
     if (scheduleProvider.technicians.isNotEmpty && !subServiceOrders) {
-      scheduleProvider.subServiceOrdersByDate('hukills', selectedDate);
+      loadWorkOrders();
+      //scheduleProvider.subServiceOrdersByDate('hukills', selectedDate);
+      /*DateTime start = timeline.first;
+      DateTime end = timeline.last.add(Duration(hours: 1));
+      scheduleProvider.filterWorkOrder(start, end);*/
+
       setState(() => subServiceOrders = true);
     }
   }
 
-  void _incrementDate() {
+  void loadWorkOrders() {
+    DateTime start = timeline.first;
+    DateTime end = timeline.last.add(Duration(hours: 1));
+    //scheduleProvider.filterWorkOrder(start, end);
+    scheduleProvider.subServiceOrdersByDate('hukills', start, end);
+  }
+
+  void _incrementDate() async {
     print('Increment Date!');
     var newDate = new DateTime(
         selectedDate.year, selectedDate.month, selectedDate.day + 1);
     setState(() => selectedDate = newDate);
-    scheduleProvider.subServiceOrdersByDate('hukills', selectedDate);
+    loadWorkOrders();
+    //scheduleProvider.subServiceOrdersByDate('hukills', selectedDate);
+
+    // DateTime start = timeline.first;
+    // DateTime end = timeline.last.add(Duration(hours: 1));
+    // await scheduleProvider.filterWorkOrder(start, end);
+    setState(() {});
   }
 
-  void _decrementDate() {
+  void _decrementDate() async {
     print('Decrement Date!');
     var newDate = new DateTime(
         selectedDate.year, selectedDate.month, selectedDate.day - 1);
     setState(() => selectedDate = newDate);
-    scheduleProvider.subServiceOrdersByDate('hukills', selectedDate);
+    //scheduleProvider.subServiceOrdersByDate('hukills', selectedDate);
+
+    loadWorkOrders();
+
+    // DateTime start = timeline.first;
+    // DateTime end = timeline.last.add(Duration(hours: 1));
+    // await scheduleProvider.filterWorkOrder(start, end);
+    setState(() {});
   }
 
   void _selectDate(BuildContext context) async {
@@ -109,9 +137,18 @@ class _ScheduleState extends State<SchedulePage> {
         initialDate: selectedDate,
         firstDate: DateTime(2000),
         lastDate: DateTime(2025));
+
     if (picked != null && picked != selectedDate) {
       setState(() => selectedDate = picked);
-      scheduleProvider.subServiceOrdersByDate('hukills', selectedDate);
+
+      print("on date select - ${dateFormatter2.format(selectedDate)}");
+
+      loadWorkOrders();
+      //scheduleProvider.subServiceOrdersByDate('hukills', selectedDate);
+      // DateTime start = timeline.first;
+      // DateTime end = timeline.last.add(Duration(hours: 1));
+      // await scheduleProvider.filterWorkOrder(start, end);
+      setState(() {});
     }
   }
 
@@ -201,8 +238,9 @@ class _ScheduleState extends State<SchedulePage> {
                             setState(() {
                               fullTimeline = !fullTimeline;
                             });
-                            await scheduleProvider.subServiceOrdersByDate(
-                                "hukills", selectedDate);
+                            // await scheduleProvider.subServiceOrdersByDate(
+                            //     "hukills", selectedDate);
+                            loadWorkOrders();
                             setState(() {});
                           },
                           child: Container(
@@ -243,7 +281,7 @@ class _ScheduleState extends State<SchedulePage> {
           Expanded(
               child: MultiplicationTable(
             timeline: timeline,
-            timelineRows: scheduleProvider.timelineRows,
+            //timelineRows: scheduleProvider.timelineRows,
           ))
         ])));
 
@@ -258,5 +296,3 @@ class _ScheduleState extends State<SchedulePage> {
     );*/
   }
 }
-
-

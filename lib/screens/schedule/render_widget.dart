@@ -9,6 +9,7 @@ class RenderWidget extends SingleChildRenderObjectWidget {
 
   final bool isWorkOrder;
   final WorkOrder? workOrder;
+  final int row;
 
   RenderWidget(
       {required Widget child,
@@ -16,13 +17,14 @@ class RenderWidget extends SingleChildRenderObjectWidget {
       this.time,
       required this.isWorkOrder,
       this.workOrder,
+      this.row = 0,
       this.index = 0})
       : super(child: child);
 
   @override
   RenderProxyWidget createRenderObject(BuildContext context) {
     return RenderProxyWidget(
-        technicianId: technicianId, time: time, index: index);
+        technicianId: technicianId, time: time, index: index, row: row);
   }
 
   @override
@@ -43,11 +45,13 @@ class RenderProxyWidget extends RenderProxyBox {
   DateTime? time;
   bool isWorkOrder;
   WorkOrder? workOrder;
+  int row;
 
   RenderProxyWidget(
       {this.technicianId = "",
       this.time,
       this.index = 0,
       this.isWorkOrder = false,
+      this.row = 0,
       this.workOrder});
 }

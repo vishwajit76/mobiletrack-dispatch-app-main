@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:linked_scroll_controller/linked_scroll_controller.dart';
-import 'package:mobiletrack_dispatch_flutter/providers/schedule_provider.dart';
 import 'package:mobiletrack_dispatch_flutter/screens/schedule/table_body.dart';
 import 'package:mobiletrack_dispatch_flutter/screens/schedule/table_head.dart';
 
 class MultiplicationTable extends StatefulWidget {
   final List<DateTime> timeline;
-  final List<TimelineRow> timelineRows;
 
-  MultiplicationTable({required this.timeline, required this.timelineRows});
+  MultiplicationTable({
+    required this.timeline,
+  });
 
   @override
   _MultiplicationTableState createState() => _MultiplicationTableState();
@@ -54,9 +54,10 @@ class _MultiplicationTableState extends State<MultiplicationTable> {
         ),
         Expanded(
           child: TableBody(
-              scrollController: _bodyController,
-              timeline: widget.timeline,
-              timelineRows: widget.timelineRows),
+            scrollController: _bodyController,
+            timeline: widget.timeline,
+            //timelineRows: widget.timelineRows
+          ),
         ),
       ],
     );

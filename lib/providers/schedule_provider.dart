@@ -20,6 +20,14 @@ class ScheduleProvider extends ChangeNotifier {
   List<Technician> get technicians => _technicians;
   bool get isLoading => _isLoading;
 
+  DateTime selectedDate = DateTime.now();
+
+  bool filterDone = false;
+
+  ScheduleProvider() {
+    print("***started ScheduleProvider***");
+  }
+
   Future getTechnicians(String handle) async {
     _timelineRows.clear();
     _technicians.clear();
@@ -40,7 +48,8 @@ class ScheduleProvider extends ChangeNotifier {
     });
 
     technicians.asMap().map((index, tech) {
-      _timelineRows.add(TimelineRow(technician: tech, workOrders: []));
+      _timelineRows.add(TimelineRow(
+          technician: tech, workOrders: [], filteredWorkOrders: []));
 
       _schedule.rows.add(TechnicianRow(
         color: Color(int.parse('0xFF${tech.color}')),
@@ -61,10 +70,13 @@ class ScheduleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future subServiceOrdersByDate(String handle, DateTime date) async {
+  Future subServiceOrdersByDate(
+      String handle, DateTime start, DateTime end) async {
     this.schedule.clearTimeSlots();
+    this.selectedDate = start;
     this._serviceOrders = [];
     _isLoading = true;
+    filterDone = false;
 
     _timelineRows.forEach((e) => e.workOrders.clear());
 
@@ -73,12 +85,12 @@ class ScheduleProvider extends ChangeNotifier {
     DateFormat day = DateFormat('dd');
     DateFormat year = DateFormat('yy');
 
-    DateFormat dateFormatter = DateFormat('dd/mm/yyyy HH:MM');
+    DateFormat dateFormatter = DateFormat('dd/MM/yyyy HH:mm');
 
     String dateString =
-        month.format(date) + day.format(date) + year.format(date);
+        month.format(start) + day.format(start) + year.format(start);
 
-    print("subServiceOrdersByDate - ${dateString}");
+    print("subServiceOrdersByDate - ${dateFormatter.format(start)}");
 
     Query ref = FirebaseFirestore.instance
         .collection('$handle/work-orders/work-orders')
@@ -107,6 +119,7 @@ class ScheduleProvider extends ChangeNotifier {
 
         if (row2 != null) {
           print("added into work list");
+
           row2.workOrders.add(
               wo); // Add Work Orders to Correct TimeSlots under correct Technician
         }
@@ -114,7 +127,7 @@ class ScheduleProvider extends ChangeNotifier {
     });
 
     //Sutton@hukills.com data
-    TimelineRow? testData = this
+    /* TimelineRow? testData = this
         ._timelineRows
         .singleWhereOrNull((e) => e.technician.id == "Sutton@hukills.com");
 
@@ -123,9 +136,9 @@ class ScheduleProvider extends ChangeNotifier {
         print(
             "Test Data - ${wo.technicianId}, ${wo.description}, ${dateFormatter.format(wo.startDate.toDate())}, ${dateFormatter.format(wo.endDate.toDate())}");
       });
-    }
+    }*/
 
-    this.serviceOrders.forEach((workOrder) {
+    /* this.serviceOrders.forEach((workOrder) {
       // pass the work orders to the correct technician
       TechnicianRow? row = this
           .schedule
@@ -136,9 +149,88 @@ class ScheduleProvider extends ChangeNotifier {
         row.addWorkOrder(
             workOrder); // Add Work Orders to Correct TimeSlots under correct Technician
       }
+    });*/
+
+    this._timelineRows.forEach((element) {
+      //element.filteredWorkOrders.clear();
+      element.workOrders
+          .sort((a, b) => a.startDate.toDate().compareTo(b.startDate.toDate()));
     });
 
+    await filterWorkOrder(start, end);
     _isLoading = false;
+
+    notifyListeners();
+  }
+
+  Future<void> clearWorkOrder(String id) async {
+    _timelineRows.forEach(
+        (e) => e.workOrders.removeWhere((element) => element.id == id));
+
+    notifyListeners();
+  }
+
+  Future<void> addWorkOrder(String tId, WorkOrder workOrder) async {
+    TimelineRow? timelineRow = _timelineRows
+        .firstWhereOrNull(((element) => element.technician.id == tId));
+
+    if (timelineRow != null) {
+      timelineRow.workOrders.add(workOrder);
+      print("vishwa added work order - ${tId}");
+      notifyListeners();
+    }
+  }
+
+  Future<void> filterWorkOrder(DateTime start, DateTime end,
+      {bool shouldUpdate: true}) async {
+    this._timelineRows.forEach((element) {
+      element.filteredWorkOrders.clear();
+    });
+
+    this._timelineRows.forEach((row) {
+      //List<WorkOrder> workOrders = [];
+      row.filteredWorkOrders.add([]);
+      int index = 0;
+      row.workOrders.forEach((workOrder) {
+        if (index == row.filteredWorkOrders.length) {
+          row.filteredWorkOrders.add([]);
+        }
+
+        if (workOrder.startDate.toDate().isBefore(end)) {
+          if (row.filteredWorkOrders[index].isEmpty) {
+            row.filteredWorkOrders[index].add(workOrder);
+          } else {
+            if (workOrder.startDate
+                .toDate()
+                .isAfter(row.filteredWorkOrders[index].last.endDate.toDate())) {
+              print(
+                  "${workOrder.technicianId} - true - ${workOrder.displayName}");
+              row.filteredWorkOrders[index].add(workOrder);
+            } else {
+              print(
+                  "${workOrder.technicianId} - false - ${workOrder.displayName}");
+              index++;
+              row.filteredWorkOrders.add([]);
+              row.filteredWorkOrders[index].add(workOrder);
+              //row.filteredWorkOrders[index].add(workOrder);
+            }
+          }
+        }
+      });
+    });
+
+    filterDone = true;
+
+    if (shouldUpdate) notifyListeners();
+    //notifyListeners();
+  }
+
+  Future<void> updateList() async {
+    List<TimelineRow> newList =
+        _timelineRows.map((element) => element).toList();
+    _timelineRows.clear();
+    notifyListeners();
+    _timelineRows.addAll(newList);
     notifyListeners();
   }
 }
@@ -146,11 +238,12 @@ class ScheduleProvider extends ChangeNotifier {
 class TimelineRow {
   final Technician technician;
   final List<WorkOrder> workOrders;
+  final List<List<WorkOrder>> filteredWorkOrders;
 
-  TimelineRow({
-    required this.technician,
-    required this.workOrders,
-  });
+  TimelineRow(
+      {required this.technician,
+      required this.workOrders,
+      required this.filteredWorkOrders});
 }
 
 class Schedule {
