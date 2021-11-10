@@ -6,10 +6,12 @@ class RenderWidget extends SingleChildRenderObjectWidget {
   final String technicianId;
   final DateTime? time;
   final int index;
+  final int totalRow;
 
   final bool isWorkOrder;
   final WorkOrder? workOrder;
   final int row;
+  final int techIndex;
 
   RenderWidget(
       {required Widget child,
@@ -18,13 +20,19 @@ class RenderWidget extends SingleChildRenderObjectWidget {
       required this.isWorkOrder,
       this.workOrder,
       this.row = 0,
-      this.index = 0})
+      this.totalRow = 1,
+      this.index = 0,
+      this.techIndex = 0})
       : super(child: child);
 
   @override
   RenderProxyWidget createRenderObject(BuildContext context) {
     return RenderProxyWidget(
-        technicianId: technicianId, time: time, index: index, row: row);
+        technicianId: technicianId,
+        time: time,
+        index: index,
+        row: row,
+        totalRow: totalRow);
   }
 
   @override
@@ -36,6 +44,8 @@ class RenderWidget extends SingleChildRenderObjectWidget {
 
     renderObject..isWorkOrder = isWorkOrder;
     renderObject..workOrder = workOrder;
+    renderObject..techIndex = techIndex;
+    renderObject..totalRow = totalRow;
   }
 }
 
@@ -46,6 +56,8 @@ class RenderProxyWidget extends RenderProxyBox {
   bool isWorkOrder;
   WorkOrder? workOrder;
   int row;
+  int totalRow;
+  int techIndex;
 
   RenderProxyWidget(
       {this.technicianId = "",
@@ -53,5 +65,7 @@ class RenderProxyWidget extends RenderProxyBox {
       this.index = 0,
       this.isWorkOrder = false,
       this.row = 0,
+      this.techIndex = 0,
+      this.totalRow = 1,
       this.workOrder});
 }

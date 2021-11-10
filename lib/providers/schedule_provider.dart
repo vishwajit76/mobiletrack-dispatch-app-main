@@ -24,6 +24,9 @@ class ScheduleProvider extends ChangeNotifier {
 
   bool filterDone = false;
 
+  List<WorkOrder> filteredWorkOrders = [];
+  List<WorkOrder> carryOvers = [];
+
   ScheduleProvider() {
     print("***started ScheduleProvider***");
   }
@@ -126,63 +129,65 @@ class ScheduleProvider extends ChangeNotifier {
       }
     });
 
-    //Sutton@hukills.com data
-    /* TimelineRow? testData = this
-        ._timelineRows
-        .singleWhereOrNull((e) => e.technician.id == "Sutton@hukills.com");
-
-    if (testData != null) {
-      testData.workOrders.forEach((wo) {
-        print(
-            "Test Data - ${wo.technicianId}, ${wo.description}, ${dateFormatter.format(wo.startDate.toDate())}, ${dateFormatter.format(wo.endDate.toDate())}");
-      });
-    }*/
-
-    /* this.serviceOrders.forEach((workOrder) {
-      // pass the work orders to the correct technician
-      TechnicianRow? row = this
-          .schedule
-          .rows
-          .singleWhereOrNull((e) => e.techRowId == workOrder.technicianId);
-
-      if (row != null) {
-        row.addWorkOrder(
-            workOrder); // Add Work Orders to Correct TimeSlots under correct Technician
-      }
-    });*/
-
-    this._timelineRows.forEach((element) {
-      //element.filteredWorkOrders.clear();
-      element.workOrders
-          .sort((a, b) => a.startDate.toDate().compareTo(b.startDate.toDate()));
-    });
-
     await filterWorkOrder(start, end);
     _isLoading = false;
 
     notifyListeners();
   }
 
-  Future<void> clearWorkOrder(String id) async {
-    _timelineRows.forEach(
-        (e) => e.workOrders.removeWhere((element) => element.id == id));
+  Future<void> clearWorkOrder(WorkOrder workOrder,
+      {bool shouldUpdate: true}) async {
+    _timelineRows
+        .firstWhere(
+            ((element) => element.technician.id == workOrder.technicianId))
+        .workOrders
+        .removeWhere((element) => element.id == workOrder.id);
 
-    notifyListeners();
+    print(
+        "sp clearWorkOrder workOrderId - ${workOrder.id}, from techId - ${workOrder.technicianId}");
+
+    // _timelineRows.forEach(
+    //     (e) => e.workOrders.removeWhere((element) => element.id == id));
+
+    //await Future.delayed(Duration(seconds: 1));
+
+    if (shouldUpdate) notifyListeners();
   }
 
-  Future<void> addWorkOrder(String tId, WorkOrder workOrder) async {
-    TimelineRow? timelineRow = _timelineRows
-        .firstWhereOrNull(((element) => element.technician.id == tId));
+  Future<void> addWorkOrder(WorkOrder workOrder,
+      {bool shouldUpdate: true}) async {
+    _timelineRows
+        .firstWhere(
+            ((element) => element.technician.id == workOrder.technicianId))
+        .workOrders
+        .add(workOrder);
 
-    if (timelineRow != null) {
-      timelineRow.workOrders.add(workOrder);
-      print("vishwa added work order - ${tId}");
-      notifyListeners();
-    }
+    int index = _timelineRows.indexWhere(((element) =>
+        element.workOrders
+            .indexWhere((element) => element.id == workOrder.id) !=
+        -1));
+
+    print(
+        "sp addWorkOrder workOrderId - ${workOrder.id}, techId - ${workOrder.technicianId}, new added index - $index");
+
+    if (shouldUpdate) notifyListeners();
+  }
+
+  Future<void> sortWorkOrders({bool shouldUpdate: true}) async {
+    //sort work order by dateTime
+    this._timelineRows.forEach((element) {
+      element.workOrders
+          .sort((a, b) => a.startDate.toDate().compareTo(b.startDate.toDate()));
+    });
+
+    filterDone = false;
+    if (shouldUpdate) notifyListeners();
   }
 
   Future<void> filterWorkOrder(DateTime start, DateTime end,
       {bool shouldUpdate: true}) async {
+    sortWorkOrders(shouldUpdate: false);
+
     this._timelineRows.forEach((element) {
       element.filteredWorkOrders.clear();
     });
@@ -191,6 +196,7 @@ class ScheduleProvider extends ChangeNotifier {
       //List<WorkOrder> workOrders = [];
       row.filteredWorkOrders.add([]);
       int index = 0;
+
       row.workOrders.forEach((workOrder) {
         if (index == row.filteredWorkOrders.length) {
           row.filteredWorkOrders.add([]);
@@ -225,16 +231,65 @@ class ScheduleProvider extends ChangeNotifier {
     //notifyListeners();
   }
 
-  Future<void> updateList() async {
+/*  Future<void> filterWorkOrder(DateTime start, DateTime end,
+      {bool shouldUpdate: true}) async {
+    this._timelineRows.forEach((element) {
+      element.filteredWorkOrders.clear();
+    });
+
+    this._timelineRows.forEach((row) {
+      row.filteredWorkOrders.add([]);
+      int index = 0;
+      carryOvers.clear();
+
+      List<WorkOrder> workOrders = row.workOrders;
+
+      generateFilteredWorkOrderRow(index, workOrders, row, end);
+
+      while (carryOvers.length > 0) {
+        workOrders.clear();
+        carryOvers.forEach((row) {
+          workOrders.add(row);
+        });
+        row.filteredWorkOrders.add([]);
+        index++;
+        carryOvers.clear();
+        generateFilteredWorkOrderRow(index, workOrders, row, end);
+      }
+    });
+
+    filterDone = true;
+    if (shouldUpdate) notifyListeners();
+  }
+
+  generateFilteredWorkOrderRow(index, workOrders, row, end) {
+    workOrders.forEach((workOrder) {
+      if (workOrder.startDate.toDate().isBefore(end)) {
+        if (row.filteredWorkOrders[index].isEmpty ||
+            workOrder.startDate
+                .toDate()
+                .isAfter(row.filteredWorkOrders[index].last.endDate.toDate())) {
+          // || workOrder.startDate.toDate() == row.filteredWorkOrders[index].last.endDate.toDate())) {
+          row.filteredWorkOrders[index].add(workOrder);
+        } else {
+          carryOvers.add(workOrder);
+        }
+      }
+    });
+  }*/
+
+  Future<List<TimelineRow>> updateList() async {
     List<TimelineRow> newList =
         _timelineRows.map((element) => element).toList();
     _timelineRows.clear();
-    notifyListeners();
     _timelineRows.addAll(newList);
-    notifyListeners();
+    _timelineRows = newList;
+    await Future.delayed(Duration(seconds: 1));
+    return _timelineRows;
   }
 }
 
+//timeline model display at schedule screen
 class TimelineRow {
   final Technician technician;
   final List<WorkOrder> workOrders;

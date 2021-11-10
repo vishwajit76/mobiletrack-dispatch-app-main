@@ -42,7 +42,11 @@ class MyApp extends StatelessWidget {
               ChangeNotifierProvider(
                   create: (context) => ServiceRequestProvider()),
               ChangeNotifierProvider(create: (context) => SettingsProvider()),
-              ChangeNotifierProvider(create: (context) => ScheduleProvider())
+              //ChangeNotifierProvider(create: (context) => ScheduleProvider()),
+
+              ChangeNotifierProvider<ScheduleProvider>(
+                create: (BuildContext context) => ScheduleProvider(),
+              ),
             ],
             child: MaterialApp(
               debugShowCheckedModeBanner: false,

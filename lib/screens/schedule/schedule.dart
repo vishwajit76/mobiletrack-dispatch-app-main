@@ -51,7 +51,7 @@ class _ScheduleState extends State<SchedulePage> {
       selectedDate.month,
       selectedDate.day,
       5,
-      1,
+      0,
     );
     return List.generate(14, (index) {
       dateTime = dateTime.add(Duration(hours: 1));
@@ -68,9 +68,7 @@ class _ScheduleState extends State<SchedulePage> {
         Provider.of<SettingsProvider>(context, listen: false);
 
     scheduleProvider.getTechnicians('hukills');
-
     super.initState();
-
     Future.microtask(() => loadWorkOrders());
     // DateTime start = timeline.first;
     // DateTime end = timeline.last.add(Duration(hours: 1));
@@ -81,18 +79,14 @@ class _ScheduleState extends State<SchedulePage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    ScheduleProvider scheduleProvider =
-        Provider.of<ScheduleProvider>(context, listen: false);
+    /* ScheduleProvider scheduleProvider =
+        Provider.of<ScheduleProvider>(context, listen: true);
 
     if (scheduleProvider.technicians.isNotEmpty && !subServiceOrders) {
       loadWorkOrders();
       //scheduleProvider.subServiceOrdersByDate('hukills', selectedDate);
-      /*DateTime start = timeline.first;
-      DateTime end = timeline.last.add(Duration(hours: 1));
-      scheduleProvider.filterWorkOrder(start, end);*/
-
       setState(() => subServiceOrders = true);
-    }
+    }*/
   }
 
   void loadWorkOrders() {

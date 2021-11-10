@@ -6,9 +6,11 @@ import 'package:mobiletrack_dispatch_flutter/screens/schedule/table_head.dart';
 
 class MultiplicationTable extends StatefulWidget {
   final List<DateTime> timeline;
+  // final List<TimelineRow> timelineRows;
 
   MultiplicationTable({
     required this.timeline,
+    //required this.timelineRows,
   });
 
   @override
